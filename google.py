@@ -1,14 +1,20 @@
 # coding:utf-8
 '''
+Functionality for fetching intraday quotes from Google finance
 '''
+from __future__ import print_function
 import urllib
 from datetime import datetime
 
 
 def fetch_intraday_quotes(symbol, interval_seconds=60, num_days=10):
-    ''' Fetches intraday quotes from Google '''
+    ''' Fetches intraday quotes from Google finance '''
     url = "http://www.google.com/finance/getprices?q=%s&i=%d&p=%dd&f=d,o,h,l,c,v" % (symbol, interval_seconds, num_days)
-    csv = urllib.urlopen(url).readlines()
+    try:
+        csv = urllib.urlopen(url).readlines()
+    except IOError as e:
+        print(e)
+        return None
     res = []
     for i in xrange(7, len(csv)):
         if csv[i].count(',') != 5:
