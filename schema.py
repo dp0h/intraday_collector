@@ -2,9 +2,11 @@
 '''
 Table definitions
 '''
+import logging
 from sqlalchemy import create_engine
 from sqlalchemy import Column, DateTime, Integer, String, Numeric
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.engine.reflection import Inspector
 
 
 engine = create_engine('sqlite:///marketdata.db', echo=False)
@@ -22,9 +24,9 @@ class Quote(Base):
     close = Column(Numeric(12, 2))
     volume = Column(Integer)
 
-    def __init__(self, datetime, symbol, open, high, low, close, volume):
-        self.datetime = datetime
+    def __init__(self, symbol, datetime, open, high, low, close, volume):
         self.symbol = symbol
+        self.datetime = datetime
         self.open = open
         self.high = high
         self.low = low
@@ -37,3 +39,10 @@ class Quote(Base):
 
 def create():
     Base.metadata.create_all(engine)
+    logging.info('Database created')
+
+
+def init():
+    inspector = Inspector.from_engine(engine)
+    if not Quote.__tablename__ in inspector.get_table_names():
+        create()

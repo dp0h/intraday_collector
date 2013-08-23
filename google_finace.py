@@ -27,5 +27,6 @@ def fetch_intraday_quotes(symbol, interval_seconds=60, num_days=10):
             off = float(off)
         o, h, l, c = [float(x) for x in [o, h, l, c]]
         dt = datetime.fromtimestamp(day + (interval_seconds * off))
+        vol = int(vol)
         res.append((symbol, dt, o, h, l, c, vol))
     return res

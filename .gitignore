@@ -37,3 +37,9 @@ nosetests.xml
 # Sublime projects
 *.sublime-project
 *.sublime-workspace
+
+# DB
+*.db
+
+# Logs
+logs/
