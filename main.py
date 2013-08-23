@@ -7,7 +7,6 @@ import logging
 from datetime import datetime
 import numpy as np
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.exc import IntegrityError
 import schema
 from google_finace import fetch_intraday_quotes
 
@@ -35,21 +34,23 @@ def main(files):
 
     for file in files:
         sybols = load_symbols(file)
+        logging.info('Processing file: %s, number of symbols: %d' % (file, len(sybols)))
 
         for s in sybols:
-            updated = 0
-            quotes = fetch_intraday_quotes(s)
-            for q in quotes:
-                try:
-                    #TODO: fetch latest datatime from DB for symbol
-                    session.add_all([schema.Quote(*q)])
+            try:
+                quotes = fetch_intraday_quotes(s)
+                if quotes:
+                    #TODO: filter already existed quotes
+                    add = [schema.Quote(*q) for q in quotes]
+                    session.add_all(add)
                     session.commit()
-                    updated += 1
-                except IntegrityError:
-                    session.rollback()
-            logging.info('%s: updated %d from %d' % (s, updated, len(quotes)))
+                else:
+                    logging.infon('No marketdata retrieved for symbol %s' % s)
+                logging.info('%s: updated %d from %d' % (s, len(add), len(quotes)))
+            except Exception as e:
+                logging.error('Failed to update symbol %s, error: %s' % (s, str(e)))
+                session.rollback()
             break
-        break
 
 
 if __name__ == '__main__':
