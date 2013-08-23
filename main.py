@@ -6,8 +6,10 @@ import os
 import logging
 from datetime import datetime
 import numpy as np
+from sqlalchemy import func
 from sqlalchemy.orm import sessionmaker
 import schema
+from schema import Quote
 from google_finace import fetch_intraday_quotes
 
 
@@ -22,7 +24,7 @@ def to_csv(symbol):
 LOG_DIR = './logs'
 
 
-def main(files):
+def main(file):
     if not os.path.isdir(LOG_DIR):
         os.mkdir(LOG_DIR)
     now = datetime.now()
@@ -32,26 +34,25 @@ def main(files):
     schema.init()
     session = sessionmaker(bind=schema.engine)()
 
-    for file in files:
-        sybols = load_symbols(file)
-        logging.info('Processing file: %s, number of symbols: %d' % (file, len(sybols)))
+    sybols = load_symbols(file)
+    logging.info('Processing file: %s, number of symbols: %d' % (file, len(sybols)))
 
-        for s in sybols:
-            try:
-                quotes = fetch_intraday_quotes(s)
-                if quotes:
-                    #TODO: filter already existed quotes
-                    add = [schema.Quote(*q) for q in quotes]
-                    session.add_all(add)
-                    session.commit()
-                else:
-                    logging.infon('No marketdata retrieved for symbol %s' % s)
+    for s in sybols:
+        try:
+            quotes = fetch_intraday_quotes(s)
+            if quotes:
+                last_date = session.query(func.max(Quote.datetime)).filter_by(symbol=s).all()[0][0]
+                add = [Quote(*q) for q in quotes if q[1] > last_date] if last_date else [Quote(*q) for q in quotes]
+                session.add_all(add)
+                session.commit()
                 logging.info('%s: updated %d from %d' % (s, len(add), len(quotes)))
-            except Exception as e:
-                logging.error('Failed to update symbol %s, error: %s' % (s, str(e)))
-                session.rollback()
-            break
+            else:
+                logging.info('No marketdata retrieved for symbol %s' % s)
+        except Exception as e:
+            logging.error('Failed to update symbol %s, error: %s' % (s, str(e)))
+            session.rollback()
 
 
 if __name__ == '__main__':
-    main(['idx/sp500.dat', 'idx/ftse100.dat'])
+    #main(['idx/sp500.dat', 'idx/ftse100.dat'])
+    main('idx/ftse100.dat')
