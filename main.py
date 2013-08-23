@@ -1,8 +1,12 @@
 #!/usr/bin/env python
 # coding:utf-8
 '''
+Utility for fetching google intraday market data.
 '''
+from __future__ import print_function
 import os
+import sys
+import getopt
 import logging
 from datetime import datetime
 import numpy as np
@@ -24,7 +28,7 @@ def to_csv(symbol):
 LOG_DIR = './logs'
 
 
-def main(file):
+def fetch(file):
     if not os.path.isdir(LOG_DIR):
         os.mkdir(LOG_DIR)
     now = datetime.now()
@@ -53,6 +57,50 @@ def main(file):
             session.rollback()
 
 
+def output2csv(file):
+    now = datetime.now()
+    outpath = "./out-%d-%02d-%02d_%02d-%02d-%02d" % (now.year, now.month, now.day, now.hour, now.minute, now.second)
+    os.makedirs(outpath)
+
+    schema.init()
+    session = sessionmaker(bind=schema.engine)()
+
+    sybols = load_symbols(file)
+    for s in sybols:
+        #TODO: save csv
+        pass
+
+
+def main(symbols_file, output):
+    if not output:
+        fetch(symbols_file)
+    else:
+        output2csv(symbols_file)
+
+
+def usage(err):
+    print('Error: %s\nUsage: %s --symbols=symbols_file [--output]' % (err, sys.argv[0]), file=sys.stderr)
+    sys.exit(1)
+
 if __name__ == '__main__':
-    #main(['idx/sp500.dat', 'idx/ftse100.dat'])
-    main('idx/ftse100.dat')
+    '''
+        --symbols filename - file with symbols
+        --output - optional flag which indicates if output csv should be generated
+    '''
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "s:o", ["symbols=", "output"])
+    except getopt.GetoptError as err:
+        usage(str(err))
+    symbols = None
+    output = False
+    for o, a in opts:
+        if o == '-s' or o == '--symbols':
+            symbols = a
+        elif o == '-o' or o == '--output':
+            output = True
+        else:
+            usage('Unhandled option')
+    if len(args) != 0:
+        usage('Too many parameters.')
+
+    main(symbols, output)

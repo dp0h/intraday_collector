@@ -1,6 +1,6 @@
 # coding:utf-8
 '''
-Table definitions
+Schema definitions
 '''
 import logging
 from sqlalchemy import create_engine
