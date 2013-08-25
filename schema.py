@@ -4,10 +4,27 @@ Schema definitions
 '''
 import logging
 from sqlalchemy import create_engine
-from sqlalchemy import Column, DateTime, Integer, String, Numeric
+from sqlalchemy import Column, DateTime, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.engine.reflection import Inspector
+import sqlalchemy.types as types
+from decimal import Decimal
 
+
+class SqliteNumeric(types.TypeDecorator):
+    ''' Overrides Numeric type, since SqlLite doesn't support it natively. '''
+    impl = types.String
+
+    def load_dialect_impl(self, dialect):
+        return dialect.type_descriptor(types.VARCHAR(100))
+
+    def process_bind_param(self, value, dialect):
+        return str(value)
+
+    def process_result_value(self, value, dialect):
+        return Decimal(value)
+
+Numeric = SqliteNumeric
 
 engine = create_engine('sqlite:///marketdata.db', echo=False)
 Base = declarative_base()
