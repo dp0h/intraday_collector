@@ -16,39 +16,35 @@ from schema import Quote
 from google_finace import fetch_intraday_quotes
 
 
-def load_symbols(fname):
-    res = []
+def _load_symbols(fname):
     with open(fname, 'rb') as f:
-        reader = csv.reader(f)
-        for x in reader:
-            res.append(x[0])
-    return res
+        return [x.rstrip() for x in f.readlines()]
 
 
-def to_csv(fname, values):
+def _to_csv(fname, values):
     ''' Export marketdata for specified symbol to csv file '''
     with open(fname, 'wb') as f:
         writer = csv.writer(f)
+        writer.writerow(['Date', 'Time', 'Open', 'High', 'Low', 'Close', 'Volume'])
         for x in values:
             writer.writerow([x.datetime.date(), x.datetime.time(), x.open, x.high, x.low, x.close, x.volume])
 
-LOG_DIR = './logs'
 
-
-def fetch(file):
-    if not os.path.isdir(LOG_DIR):
-        os.mkdir(LOG_DIR)
+def _now():
     now = datetime.now()
-    fname = '%d-%02d-%02d_%02d-%02d-%02d.log' % (now.year, now.month, now.day, now.hour, now.minute, now.second)
-    logging.basicConfig(filename=os.path.join(LOG_DIR, fname), level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+    return '%d-%02d-%02d_%02d-%02d-%02d' % (now.year, now.month, now.day, now.hour, now.minute, now.second)
 
-    schema.init()
-    session = sessionmaker(bind=schema.engine)()
+_LOG_DIR = './logs'
 
-    sybols = load_symbols(file)
-    logging.info('Processing file: %s, number of symbols: %d' % (file, len(sybols)))
 
-    for s in sybols:
+def fetch(symbols, session):
+    if not os.path.isdir(_LOG_DIR):
+        os.mkdir(_LOG_DIR)
+    fname = '%s.log' % _now()
+    logging.basicConfig(filename=os.path.join(_LOG_DIR, fname), level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+
+    logging.info('Processing file: %s, number of symbols: %d' % (file, len(symbols)))
+    for s in symbols:
         try:
             quotes = fetch_intraday_quotes(s)
             if quotes:
@@ -64,25 +60,25 @@ def fetch(file):
             session.rollback()
 
 
-def output2csv(file):
-    now = datetime.now()
-    outpath = "./out-%d-%02d-%02d_%02d-%02d-%02d" % (now.year, now.month, now.day, now.hour, now.minute, now.second)
+def output2csv(symbols, session):
+    outpath = "./out-%s" % _now()
     os.makedirs(outpath)
 
-    schema.init()
-    session = sessionmaker(bind=schema.engine)()
-
-    sybols = load_symbols(file)
-    for s in sybols:
+    for s in symbols:
         qres = session.query(Quote).filter(Quote.symbol == s).order_by(Quote.datetime)
-        to_csv(os.path.join(outpath, '%s.csv' % s), qres)
+        _to_csv(os.path.join(outpath, '%s.csv' % s), qres)
 
 
 def main(symbols_file, output):
+    symbols = _load_symbols(symbols_file)
+
+    schema.init()
+    dbsession = sessionmaker(bind=schema.engine)()
+
     if not output:
-        fetch(symbols_file)
+        fetch(symbols, dbsession)
     else:
-        output2csv(symbols_file)
+        output2csv(symbols, dbsession)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Fetches Google intraday market data.')
