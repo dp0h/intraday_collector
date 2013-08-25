@@ -5,7 +5,6 @@ Utility for fetching Google intraday market data.
 '''
 from __future__ import print_function
 import os
-import sys
 import argparse
 import logging
 from datetime import datetime
@@ -26,9 +25,12 @@ def load_symbols(fname):
     return res
 
 
-def to_csv(symbol, values):
+def to_csv(fname, values):
     ''' Export marketdata for specified symbol to csv file '''
-    pass
+    with open(fname, 'wb') as f:
+        writer = csv.writer(f)
+        for x in values:
+            writer.writerow([x.datetime.date(), x.datetime.time(), x.open, x.high, x.low, x.close, x.volume])
 
 LOG_DIR = './logs'
 
@@ -72,9 +74,8 @@ def output2csv(file):
 
     sybols = load_symbols(file)
     for s in sybols:
-        res = session.query(Quote).filter(Quote.symbol == s).order_by(Quote.datetime)
-        to_csv(s, res)
-        break  # TODO
+        qres = session.query(Quote).filter(Quote.symbol == s).order_by(Quote.datetime)
+        to_csv(os.path.join(outpath, '%s.csv' % s), qres)
 
 
 def main(symbols_file, output):
