@@ -9,19 +9,24 @@ import sys
 import getopt
 import logging
 from datetime import datetime
-import numpy as np
 from sqlalchemy import func
 from sqlalchemy.orm import sessionmaker
+import csv
 import schema
 from schema import Quote
 from google_finace import fetch_intraday_quotes
 
 
 def load_symbols(fname):
-    return np.loadtxt(fname, dtype='S10', comments='#', skiprows=0)
+    res = []
+    with open(fname, 'rb') as f:
+        reader = csv.reader(f)
+        for x in reader:
+            res.append(x[0])
+    return res
 
 
-def to_csv(symbol):
+def to_csv(symbol, values):
     ''' Export marketdata for specified symbol to csv file '''
     pass
 
@@ -67,8 +72,9 @@ def output2csv(file):
 
     sybols = load_symbols(file)
     for s in sybols:
-        #TODO: save csv
-        pass
+        res = session.query(Quote).filter(Quote.symbol == s).order_by(Quote.datetime)
+        to_csv(s, res)
+        break  # TODO
 
 
 def main(symbols_file, output):
