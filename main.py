@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 # coding:utf-8
 '''
-Utility for fetching google intraday market data.
+Utility for fetching Google intraday market data.
 '''
 from __future__ import print_function
 import os
 import sys
-import getopt
+import argparse
 import logging
 from datetime import datetime
 from sqlalchemy import func
@@ -83,30 +83,10 @@ def main(symbols_file, output):
     else:
         output2csv(symbols_file)
 
-
-def usage(err):
-    print('Error: %s\nUsage: %s --symbols=symbols_file [--output]' % (err, sys.argv[0]), file=sys.stderr)
-    sys.exit(1)
-
 if __name__ == '__main__':
-    '''
-        --symbols filename - file with symbols
-        --output - optional flag which indicates if output csv should be generated
-    '''
-    try:
-        opts, args = getopt.getopt(sys.argv[1:], "s:o", ["symbols=", "output"])
-    except getopt.GetoptError as err:
-        usage(str(err))
-    symbols = None
-    output = False
-    for o, a in opts:
-        if o == '-s' or o == '--symbols':
-            symbols = a
-        elif o == '-o' or o == '--output':
-            output = True
-        else:
-            usage('Unhandled option')
-    if len(args) != 0:
-        usage('Too many parameters.')
+    parser = argparse.ArgumentParser(description='Fetches Google intraday market data.')
+    parser.add_argument('-o', '--output', action='store_true', help='flag which indicates if output csv should be generated')
+    parser.add_argument('symbols', metavar='symbols', type=str, help='a file with symbols')
 
-    main(symbols, output)
+    args = parser.parse_args()
+    main(args.symbols, args.output)
