@@ -37,13 +37,13 @@ def _now():
 _LOG_DIR = './logs'
 
 
-def fetch(symbols, session):
+def fetch(symbols_file, symbols, session):
     if not os.path.isdir(_LOG_DIR):
         os.mkdir(_LOG_DIR)
     fname = '%s.log' % _now()
     logging.basicConfig(filename=os.path.join(_LOG_DIR, fname), level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
-    logging.info('Processing file: %s, number of symbols: %d' % (file, len(symbols)))
+    logging.info('Processing file: %s, number of symbols: %d' % (symbols_file, len(symbols)))
     for s in symbols:
         try:
             quotes = fetch_intraday_quotes(s)
@@ -76,7 +76,7 @@ def main(symbols_file, output):
     dbsession = sessionmaker(bind=schema.engine)()
 
     if not output:
-        fetch(symbols, dbsession)
+        fetch(symbols_file, symbols, dbsession)
     else:
         output2csv(symbols, dbsession)
 
